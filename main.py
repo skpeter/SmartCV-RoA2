@@ -159,7 +159,7 @@ def read_text(img, region):
     x, y, w, h = region
     cropped_img = img.crop((x, y, x + w, y + h))
 
-    # Convert stage_img from PIL.Image to cv2
+    # Convert image from PIL to cv2
     cropped_img = cv2.cvtColor(np.array(cropped_img), cv2.COLOR_RGB2GRAY)
         
         
