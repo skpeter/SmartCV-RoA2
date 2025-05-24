@@ -42,7 +42,7 @@ previous_states = [None] # list of previous states to be used for state change d
 reader = easyocr.Reader(['en'])
 refresh_rate = config.getfloat('settings', 'refresh_rate')
 capture_mode = config.get('settings', 'capture_mode')
-executable_name = config.get('settings', 'executable_name')
+executable_title = config.get('settings', 'executable_title')
 # Get the feed path from the config file
 feed_path = config.get('settings', 'feed_path')
 base_height = 1080
@@ -53,7 +53,7 @@ def is_within_deviation(color1, color2, deviation):
     return all(abs(c1 - c2) / 255.0 <= deviation for c1, c2 in zip(color1, color2))
 
 def capture_screen():
-    global base_height, base_width, feed_path, capture_mode, executable_name
+    global base_height, base_width, feed_path, capture_mode, executable_title
     if capture_mode == 'obs':
         while True:
             try:
@@ -68,11 +68,11 @@ def capture_screen():
                     raise e
     else:
         # Find the window by its title
-        windows = gw.getWindowsWithTitle(executable_name)
+        windows = gw.getWindowsWithTitle(executable_title)
         if windows:
             window = windows[0]
         else:
-            print(f"Executable {executable_name} not found. Ensure it is running and visible.")
+            print(f"Executable {executable_title} not found. Ensure it is running and visible.")
             return False, None, None
 
         # Get the window's bounding box
@@ -103,7 +103,7 @@ def capture_screen():
     return img, scale_x, scale_y
 
 def detect_stage_select_screen():
-    global config, payload, previous_states, feed_path, capture_mode, executable_name
+    global config, payload, previous_states, feed_path, capture_mode, executable_title
     # Read the config file
 
     img, scale_x, scale_y = capture_screen()
@@ -126,7 +126,7 @@ def detect_stage_select_screen():
 
 
 def detect_character_select_screen():
-    global config, payload, previous_states, feed_path, capture_mode, executable_name
+    global config, payload, previous_states, feed_path, capture_mode, executable_title
     
     img, scale_x, scale_y = capture_screen()
     if not img: return
@@ -179,7 +179,7 @@ def read_text(img, region):
     return result
 
 def detect_characters_and_tags():
-    global config, payload, refresh_rate, feed_path, capture_mode, executable_name
+    global config, payload, refresh_rate, feed_path, capture_mode, executable_title
     # Read the config file
     
     img, scale_x, scale_y = capture_screen()
@@ -225,7 +225,7 @@ def detect_characters_and_tags():
     return img
 
 def detect_versus_screen():
-    global config, payload, previous_states, feed_path, capture_mode, executable_name
+    global config, payload, previous_states, feed_path, capture_mode, executable_title
     # Read the config file
     
     img, scale_x, scale_y = capture_screen()
@@ -257,7 +257,7 @@ def detect_versus_screen():
     return
 
 def detect_game_end():
-    global config, payload, previous_states, feed_path, capture_mode, executable_name
+    global config, payload, previous_states, feed_path, capture_mode, executable_title
     # Read the config file
 
     img, scale_x, scale_y = capture_screen()
