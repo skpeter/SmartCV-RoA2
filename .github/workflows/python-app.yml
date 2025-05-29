@@ -13,6 +13,9 @@ jobs:
     permissions: write-all
 
     steps:
+    - name: Install UPX (Windows)
+      run: choco install upx
+
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -35,7 +38,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: Build with PyInstaller
-      run: pyinstaller main.spec
+      run: pyinstaller main.spec --clean --noconfirm
 
     - name: Copy config file and images
       run: |
