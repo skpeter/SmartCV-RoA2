@@ -13,9 +13,6 @@ jobs:
     permissions: write-all
 
     steps:
-    - name: Install UPX (Windows)
-      run: choco install upx
-
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -23,6 +20,9 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+
+    - name: Install UPX (Windows)
+      run: choco install upx
 
     - name: Install dependencies
       run: |
