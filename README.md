@@ -10,13 +10,14 @@ It's a project that uses pixel detection to recognize certain situations in the 
 - [OBS (optional if streaming)](https://obsproject.com/download)
 - [Advanced Scene Switcher OBS Plugin (optional if streaming)](https://github.com/WarmUpTill/SceneSwitcher/releases)
 - Your copy of Rivals of Aether II must be in **English**. Support for other languages is being looked into.
+- You must disable all mods that change the UI or in-game text in any way.
 
 ## Installation
 ### Step 1.1: Installing the CPU version
-- Installing the CPU version is very easy. Just download the compiled release.zip [here](https://github.com/skpeter/smartcv/releases).
+- Installing the CPU version is very easy. Just download the compiled release.zip [here](https://github.com/skpeter/smartcv-roa2/releases).
 - You can skip to step 2 from here.
 ### Step 1.2: Installing the GPU version
-- You will need to download the **source code** zip [here](https://github.com/skpeter/smartcv/releases).
+- You will need to download the **source code** zip [here](https://github.com/skpeter/smartcv-roa2/releases).
 - Install Python if you haven't done so already [here](https://www.python.org/downloads/). **Recommended version is 3.12**.
 - You will need to then install PyTorch, which is done through command prompt/terminal. Go to Pytorch's "Start Locally" section [here](https://pytorch.org/get-started/locally/), pick the **Stable** build, select the OS you use (**Windows, Mac or Linux**), **Pip** as packaging system, **Python** as language and then select the **Compute Platform** available on your GPU. You can check which version of CUDA your GPU supports [here](https://en.wikipedia.org/wiki/CUDA#GPUs_supported).
 ![PyTorch installation page](img/install1.jpg)
