@@ -10,6 +10,7 @@ It's a project that uses pixel detection to recognize certain situations in the 
 - [OBS (optional if streaming)](https://obsproject.com/download)
 - [Advanced Scene Switcher OBS Plugin (optional if streaming)](https://github.com/WarmUpTill/SceneSwitcher/releases)
 - Your copy of Rivals of Aether II must be in **English**. Support for other languages is being looked into.
+- **Tournament Mode must be enabled.**
 - You must disable all mods that change the UI or in-game text in any way.
 
 ## Installation
