@@ -1,6 +1,4 @@
 import configparser
-from PIL import Image, ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES=True
 import cv2
 import numpy as np
 import threading
