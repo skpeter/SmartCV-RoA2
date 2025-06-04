@@ -46,6 +46,17 @@ jobs:
       run: |
         copy smartcv_core\config.ini.example dist\smartcv\config.ini
         mkdir dist\smartcv\img
+    - name: Disable enable_dialog in config.ini
+      shell: pwsh
+      run: |
+        $path = "dist\smartcv\config.ini"
+        (Get-Content $path) | ForEach-Object {
+          if ($_ -match '^\s*enable_dialog\s*=') {
+            "enable_dialog = false"
+          } else {
+            $_
+          }
+        } | Set-Content $path
     - name: Create zip file
       run: |
         cd dist\smartcv
