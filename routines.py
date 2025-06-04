@@ -74,8 +74,6 @@ def detect_character_select_screen(payload:dict):
                 player['character'] = None
                 player['name'] = None
 
-    return
-
 def detect_characters_and_tags(payload:dict):
     img, scale_x, scale_y = core.capture_screen()
     if not img: return
@@ -117,7 +115,6 @@ def detect_characters_and_tags(payload:dict):
         core.print_with_time("Player 2 tag:", t2)
 
     threading.Thread(target=read_characters_and_names, args=(payload,)).start()
-    return img
 
 def detect_versus_screen(payload:dict):
     img, scale_x, scale_y = core.capture_screen()
