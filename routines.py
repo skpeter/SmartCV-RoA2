@@ -47,6 +47,11 @@ def detect_stage_select_screen(payload:dict):
             previous_states.append(payload['state'])
             # reset payload to original values
             payload['stage'] = None
+            for player in payload['players']:
+                player['stocks'] = None
+                player['damage'] = None
+                player['character'] = None
+                player['name'] = None
         if payload['players'][0]['character'] == None: detect_characters_and_tags(payload)
 
 
@@ -103,7 +108,8 @@ def detect_characters_and_tags(payload:dict):
         if characters is not None:
             characters = characters.split(" ")
             if len(characters) == 2:
-                c1, _, c2, _ = findBestMatch(characters[0], roa2.characters), findBestMatch(characters[1], roa2.characters)
+                c1, _ = findBestMatch(characters[0], roa2.characters)
+                c2, _ = findBestMatch(characters[1], roa2.characters)
             else:
                 return detect_characters_and_tags(payload) # re-attempt detection
         else:
@@ -142,7 +148,6 @@ def detect_versus_screen(payload:dict):
             time.sleep(10) # wait for the game to start
         else:
             core.print_with_time("Match has started!")
-
     return
 
 def detect_game_end(payload:dict):
@@ -154,7 +159,7 @@ def detect_game_end(payload:dict):
     if core.get_color_match_in_region(img, (0, int(10 * scale_y), int(1920 * scale_x), int(10 + 5 * scale_y)), target_color, deviation) >= 0.9:
         core.print_with_time("Game end detected")
         region = (int(540 * scale_x), int(775 * scale_y), int(731 * scale_x), int(200 * scale_y))
-        crop_area = (int(175 * scale_x), int(250 * scale_x), int(535 * scale_x), int(605 * scale_x))
+        crop_area = (int(175 * scale_x), int(255 * scale_x), int(530 * scale_x), int(620 * scale_x))
         if (process_game_end_data(payload, img, region, crop_area)):
             payload['state'] = "game_end"
             if payload['state'] != previous_states[-1]:
@@ -244,7 +249,7 @@ def process_game_end_data(payload:dict, img, region: tuple[int, int, int, int], 
     return False
 
 states_to_functions = {
-    None: [detect_character_select_screen, detect_game_end],
+    None: [detect_character_select_screen],
     "character_select": [detect_stage_select_screen],
     "stage_select": [detect_character_select_screen, detect_versus_screen],
     "in_game": [detect_character_select_screen, detect_game_end],
