@@ -52,7 +52,7 @@ def detect_stage_select_screen(payload:dict):
                 player['damage'] = None
                 player['character'] = None
                 player['name'] = None
-        if payload['players'][0]['character'] == None: detect_characters_and_tags(payload)
+        detect_characters_and_tags(payload)
 
 
 
@@ -80,6 +80,7 @@ def detect_character_select_screen(payload:dict):
                 player['name'] = None
 
 def detect_characters_and_tags(payload:dict):
+    if payload['players'][0]['character'] != None: return 
     img, scale_x, scale_y = core.capture_screen()
     if not img: return
     
@@ -102,18 +103,18 @@ def detect_characters_and_tags(payload:dict):
             if len(tags) == 2:
                 t1, t2 = tags[0], tags[1]
             else:
-                return detect_characters_and_tags(payload) # re-attempt detection
+                return
         else:
-            return detect_characters_and_tags(payload) # re-attempt detection
+            return
         if characters is not None:
             characters = characters.split(" ")
             if len(characters) == 2:
                 c1, _ = findBestMatch(characters[0], roa2.characters)
                 c2, _ = findBestMatch(characters[1], roa2.characters)
             else:
-                return detect_characters_and_tags(payload) # re-attempt detection
+                return
         else:
-            return detect_characters_and_tags(payload)
+            return
         payload['players'][0]['character'], payload['players'][1]['character'], payload['players'][0]['name'], payload['players'][1]['name'] = c1, c2, t1, t2
         core.print_with_time("Player 1 character:", c1)
         core.print_with_time("Player 2 character:", c2)
@@ -155,12 +156,12 @@ def detect_game_end(payload:dict):
     if not img: return
 
     target_color = (0, 0, 0)  #(black letterbox that shows up when game ends)
-    deviation = 0.1
-    if core.get_color_match_in_region(img, (0, int(10 * scale_y), int(1920 * scale_x), int(10 + 5 * scale_y)), target_color, deviation) >= 0.9:
+    deviation = 0.05
+    if (core.get_color_match_in_region(img, (0, int(5 * scale_y), int(1920 * scale_x), int(10 + 1 * scale_y)), target_color, deviation) >= 0.9
+    and core.get_color_match_in_region(img, (0, int(1075 * scale_y), int(1920 * scale_x), int(10 + 1 * scale_y)), target_color, deviation) >= 0.9):
         core.print_with_time("Game end detected")
-        region = (int(540 * scale_x), int(775 * scale_y), int(731 * scale_x), int(200 * scale_y))
-        crop_area = (int(175 * scale_x), int(255 * scale_x), int(530 * scale_x), int(620 * scale_x))
-        if (process_game_end_data(payload, img, region, crop_area)):
+        region = (int(540 * scale_x), int(825 * scale_y), int(731 * scale_x), int(175 * scale_y))
+        if (process_game_end_data(payload, img, region)):
             payload['state'] = "game_end"
             if payload['state'] != previous_states[-1]:
                 previous_states.append(payload['state'])
@@ -178,52 +179,41 @@ def unstick_result(data):
             result.append(item)
     return result
     
-def process_game_end_data(payload:dict, img, region: tuple[int, int, int, int], crop_area: tuple[int, int, int, int]):
+def process_game_end_data(payload:dict, img, region: tuple[int, int, int, int]):
     x, y, w, h = region
-    x1_start, x1_end, x2_start, x2_end = crop_area
     img = np.array(img)
     img = img[int(y):int(y+h), int(x):int(x+w)]
-    left = img[:, :x1_start]
-    middle = img[:, x1_end:x2_start]
-    right = img[:, x2_end:]
-    img = np.hstack([left, middle, right])
-    
-    read_data = core.read_text(img, colored=True, contrast=2, allowlist="O0I123456789x%")
+    img = core.stitch_text_regions(img, 56, (255,255,255), margin=10, deviation=0.2)
+    if not len(img) or not img.any(): 
+        core.print_with_time("Could not read game end data. Trying again...")
+        return False
+    read_data = core.read_text(img, colored=False, contrast=2, allowlist="DO0I12345678A9x%")
 
     # what this text will extract are for excerpts of numbers. the first is the number of stocks for player 1, the second is the damage received by player 1, the third is the number of stocks for player 2, and the fourth is the damage received by player 2.
     if read_data:
-        read_data = read_data.split(" ")
+        # this is to separa the stock count from the damage count as easyocr usually reads it as one big string
+        # example: '214%084%'
+        read_data = read_data.replace('O','0').replace('D','0').replace('I','1').replace('A','9')
+        read_data = re.split(r"[ x%]", read_data)
+        read_data = [data for data in read_data if data]
         print(read_data)
-        # sometimes stock count sticks with the %
-        read_data = unstick_result(read_data)
-        # if a player has zero stocks, you can imply the other has 1 or more.
-        if len(read_data) == 3:
-            if 'O' in read_data: idx = read_data.index('O')
-            elif '0' in read_data: idx = read_data.index('0')
-            else: idx = -1
-            if idx == 1: read_data.insert(0, '1')
-            elif idx == 0: read_data.insert(2, '1')
-        # remove % sign
+        result = []
+        for i, data in enumerate(read_data):
+            if not data.isdigit(): del read_data[i]
+            if len(result) >= 4: break
+            result.extend([data[0], data[1:]]) if len(data) > 1 and len(read_data[i-1]) > 1  else result.append(data)
 
-        read_data = ([int(res.split('%')[0].split('x')[0].replace('O', '0').replace('I', '1') or 0) for res in read_data])
-        if len(read_data) > 4: read_data = core.remove_neighbor_duplicates(read_data)
-        print(read_data)
-            
-        if len(read_data) == 2:
-            # okay fuck it, pretend it's a timeout
-            read_data.insert(0, 1)
-            read_data.insert(2, 1)
-
-        if len(read_data) == 4:
-            stocks1, damage1, stocks2, damage2 = read_data[0], read_data[1], read_data[2], read_data[3]
+        print(result)
+        if len(result) == 4:
+            stocks1, damage1, stocks2, damage2 = int(result[0]), int(result[1]), int(result[2]), int(result[3])
             payload['players'][0]['stocks'] = stocks1
             payload['players'][1]['stocks'] = stocks2
             payload['players'][0]['damage'] = damage1
             payload['players'][1]['damage'] = damage2
             
             #validate stock counts
-            if not (0 <= stocks1 <= 3) and stocks2 > 0: stocks1 = 0
-            if not (0 <= stocks2 <= 3) and stocks1 > 0: stocks2 = 0
+            if not (0 <= stocks1 <= 3) and stocks2 > 0: stocks1, stocks2 = 0, 1
+            if not (0 <= stocks2 <= 3) and stocks1 > 0: stocks2, stocks1 = 0, 1
 
 
             core.print_with_time(f"{payload['players'][0]['name']}'s end state: {stocks1} stocks at {damage1}%")
@@ -236,14 +226,10 @@ def process_game_end_data(payload:dict, img, region: tuple[int, int, int, int], 
                 core.print_with_time(f"{payload['players'][0]['name']} wins!")
             elif stocks1 == stocks2:
                 # in this case, we need to be more scrumptuous with the damage values as they can be read wrong
-                if damage1 > 270 or damage2 > 270:
-                    core.print_with_time("Damage values considered too high")
-                    return False
                 if damage1 < damage2:
                     core.print_with_time(f"{payload['players'][0]['name']} wins!")
                 elif damage1 > damage2:
                     core.print_with_time(f"{payload['players'][1]['name']} wins!")
-            else: core.print_with_time("Draw game")
             return True
     core.print_with_time("Could not read game end data. Trying again...")
     return False
@@ -251,7 +237,7 @@ def process_game_end_data(payload:dict, img, region: tuple[int, int, int, int], 
 states_to_functions = {
     None: [detect_character_select_screen],
     "character_select": [detect_stage_select_screen],
-    "stage_select": [detect_character_select_screen, detect_versus_screen],
+    "stage_select": [detect_characters_and_tags, detect_character_select_screen, detect_versus_screen],
     "in_game": [detect_character_select_screen, detect_game_end],
     "game_end": [detect_character_select_screen, detect_stage_select_screen],
 }
