@@ -31,9 +31,7 @@ payload = {
     ]
 }
 
-def detect_stage_select_screen(payload:dict):
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_stage_select_screen(payload:dict, img, scale_x:float, scale_y:float):
     pixel = img.getpixel((int(75 * scale_x), int(540 * scale_y)))  # white stage width icon
     
     # Define the target colors and deviation
@@ -52,13 +50,11 @@ def detect_stage_select_screen(payload:dict):
                 player['damage'] = None
                 player['character'] = None
                 player['name'] = None
-        detect_characters_and_tags(payload)
+        detect_characters_and_tags(payload, img, scale_x, scale_y)
 
 
 
-def detect_character_select_screen(payload:dict):    
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_character_select_screen(payload:dict, img, scale_x:float, scale_y:float):    
     pixel = img.getpixel((int(875 * scale_x), int(23 * scale_y))) #white tournament mode icon
     pixel2 = img.getpixel((int(320 * scale_x), int(10 * scale_y))) #back button area
     
@@ -79,15 +75,13 @@ def detect_character_select_screen(payload:dict):
                 player['character'] = None
                 player['name'] = None
 
-def detect_characters_and_tags(payload:dict):
+def detect_characters_and_tags(payload:dict, img, scale_x:float, scale_y:float):
     if payload['players'][0]['character'] != None: return 
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
     
     #set initial game data, both players have 3 stocks
     for player in payload['players']:
         player['stocks'] = 3
-    def read_characters_and_names(payload):
+    def read_characters_and_names(payload, img, scale_x, scale_y):
         # signal to the main loop that character and tag detection is in progress
         if payload['state'] != "stage_select": return
         payload['players'][0]['character'] = False
@@ -121,11 +115,9 @@ def detect_characters_and_tags(payload:dict):
         core.print_with_time("Player 1 tag:", t1)
         core.print_with_time("Player 2 tag:", t2)
 
-    threading.Thread(target=read_characters_and_names, args=(payload,)).start()
+    threading.Thread(target=read_characters_and_names, args=(payload, img, scale_x, scale_y)).start()
 
-def detect_versus_screen(payload:dict):
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
     pixel1 = img.getpixel((int(1075 * scale_x), int(69 * scale_y))) #(white rupture between characters on VS screen)
     pixel2 = img.getpixel((int(855 * scale_x), int(985 * scale_y))) #(white rupture between characters on VS screen)
     pixel3 = img.getpixel((int(942 * scale_x), int(85 * scale_y))) #backup pixel to detect game has started: semicolon from ingame timer
@@ -151,9 +143,7 @@ def detect_versus_screen(payload:dict):
             core.print_with_time("Match has started!")
     return
 
-def detect_game_end(payload:dict):
-    img, scale_x, scale_y = core.capture_screen()
-    if not img: return
+def detect_game_end(payload:dict, img, scale_x:float, scale_y:float):
 
     target_color = (0, 0, 0)  #(black letterbox that shows up when game ends)
     deviation = 0.05
