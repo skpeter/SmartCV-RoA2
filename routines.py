@@ -161,7 +161,7 @@ def detect_game_end(payload:dict):
     and core.get_color_match_in_region(img, (0, int(1075 * scale_y), int(1920 * scale_x), int(10 + 1 * scale_y)), target_color, deviation) >= 0.9):
         core.print_with_time("Game end detected")
         region = (int(540 * scale_x), int(825 * scale_y), int(731 * scale_x), int(175 * scale_y))
-        if (process_game_end_data(payload, img, region)):
+        if (process_game_end_data(payload, img, scale_y, region)):
             payload['state'] = "game_end"
             if payload['state'] != previous_states[-1]:
                 previous_states.append(payload['state'])
@@ -179,11 +179,11 @@ def unstick_result(data):
             result.append(item)
     return result
     
-def process_game_end_data(payload:dict, img, region: tuple[int, int, int, int]):
+def process_game_end_data(payload:dict, img, scale_y:int, region: tuple[int, int, int, int]):
     x, y, w, h = region
     img = np.array(img)
     img = img[int(y):int(y+h), int(x):int(x+w)]
-    img = core.stitch_text_regions(img, 56, (255,255,255), margin=10, deviation=0.2)
+    img = core.stitch_text_regions(img, int(56 * scale_y), (255,255,255), margin=10, deviation=0.2)
     if not len(img) or not img.any(): 
         core.print_with_time("Could not read game end data. Trying again...")
         return False
