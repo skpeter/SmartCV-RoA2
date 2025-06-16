@@ -93,7 +93,6 @@ def detect_characters_and_tags(payload:dict, img, scale_x:float, scale_y:float):
         #it will also yield a number of 2 tags separated by spaces. an exception to this is if the player does not have a tag, in which case they will show up as Player 1, Player 2, Player 3 or Player 4.
         #the regex will handle these exceptions.
         if tags is not None:
-            tags = re.split(r' (?=\D)', tags)
             if len(tags) == 2:
                 t1, t2 = tags[0], tags[1]
             else:
@@ -101,7 +100,6 @@ def detect_characters_and_tags(payload:dict, img, scale_x:float, scale_y:float):
         else:
             return
         if characters is not None:
-            characters = characters.split(" ")
             if len(characters) == 2:
                 c1, _ = findBestMatch(characters[0], roa2.characters)
                 c2, _ = findBestMatch(characters[1], roa2.characters)
@@ -134,6 +132,7 @@ def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
         if core.is_within_deviation(pixel1, target_color, deviation) and core.is_within_deviation(pixel2, target_color, deviation):
             stage = core.read_text(img, (int(1120 * scale_x), int(25 * scale_y), int(755 * scale_x), int(75 * scale_y)))
             if stage is not None:
+                stage = stage.join(' ')
                 payload['stage'], _ = findBestMatch(stage, roa2.stages)
                 core.print_with_time("Match has started on stage:", payload['stage'])
             else:
@@ -183,6 +182,7 @@ def process_game_end_data(payload:dict, img, scale_y:int, region: tuple[int, int
     if read_data:
         # this is to separa the stock count from the damage count as easyocr usually reads it as one big string
         # example: '214%084%'
+        read_data = read_data.join(' ')
         read_data = read_data.replace('O','0').replace('D','0').replace('I','1').replace('A','9')
         read_data = re.split(r"[ x%]", read_data)
         read_data = [data for data in read_data if data]
