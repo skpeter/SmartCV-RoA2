@@ -196,15 +196,14 @@ def process_game_end_data(payload:dict, img, scale_y:int, region: tuple[int, int
         print(result)
         if len(result) == 4:
             stocks1, damage1, stocks2, damage2 = int(result[0]), int(result[1]), int(result[2]), int(result[3])
-            payload['players'][0]['stocks'] = stocks1
-            payload['players'][1]['stocks'] = stocks2
-            payload['players'][0]['damage'] = damage1
-            payload['players'][1]['damage'] = damage2
-            
             #validate stock counts
             if not (0 <= stocks1 <= 3) and stocks2 > 0: stocks1, stocks2 = 0, 1
             if not (0 <= stocks2 <= 3) and stocks1 > 0: stocks2, stocks1 = 0, 1
 
+            payload['players'][0]['stocks'] = stocks1
+            payload['players'][1]['stocks'] = stocks2
+            payload['players'][0]['damage'] = damage1
+            payload['players'][1]['damage'] = damage2
 
             core.print_with_time(f"{payload['players'][0]['name']}'s end state: {stocks1} stocks at {damage1}%")
             core.print_with_time(f"{payload['players'][1]['name']}'s end state: {stocks2} stocks at {damage2}%")
