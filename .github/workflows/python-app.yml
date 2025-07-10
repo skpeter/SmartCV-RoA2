@@ -6,6 +6,9 @@ on:
       - main
     paths-ignore:
       - 'README.md'
+  workflow_dispatch:
+  repository_dispatch:
+    types: [core-updated]
 
 jobs:
   build:
