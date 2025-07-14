@@ -11,7 +11,8 @@ characters = [
   "Orcane",
   "Forsburn",
   "Etalus",
-  "Olympia"
+  "Olympia",
+  "Absa"
 ]
 
 stages = [
