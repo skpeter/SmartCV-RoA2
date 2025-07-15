@@ -1,13 +1,11 @@
 import configparser
 import numpy as np
-import threading
 import time
 import roa2
 import re
 import core.core as core
 from core.matching import findBestMatch
 client_name = "smartcv-roa2"
-payload_lock = threading.Lock()
 config = configparser.ConfigParser()
 config.read('config.ini')
 previous_states = [None] # list of previous states to be used for state change detection
