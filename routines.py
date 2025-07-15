@@ -113,7 +113,7 @@ def detect_characters_and_tags(payload:dict, img, scale_x:float, scale_y:float):
         core.print_with_time("Player 1 tag:", t1)
         core.print_with_time("Player 2 tag:", t2)
 
-    threading.Thread(target=read_characters_and_names, args=(payload, img, scale_x, scale_y)).start()
+    read_characters_and_names(payload, img, scale_x, scale_y)
 
 def detect_versus_screen(payload:dict, img, scale_x:float, scale_y:float):
     pixel1 = img.getpixel((int(1075 * scale_x), int(69 * scale_y))) #(white rupture between characters on VS screen)
