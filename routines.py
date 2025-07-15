@@ -224,7 +224,7 @@ def process_game_end_data(payload:dict, img, scale_y:int, region: tuple[int, int
 states_to_functions = {
     None: [detect_character_select_screen],
     "character_select": [detect_stage_select_screen],
-    "stage_select": [detect_characters_and_tags, detect_character_select_screen, detect_versus_screen],
+    "stage_select": [detect_character_select_screen, detect_versus_screen, detect_characters_and_tags],
     "in_game": [detect_character_select_screen, detect_game_end],
     "game_end": [detect_character_select_screen, detect_stage_select_screen],
 }
