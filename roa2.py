@@ -12,12 +12,16 @@ characters = [
   "Forsburn",
   "Etalus",
   "Olympia",
-  "Absa"
+  "Absa",
+  "Galvan",
+  "La Reina"
 ]
 
 stages = [
   "Aetherian Forest",
+  "Metal Graveyard", # Aetherian Forest skin
   "Godai Delta",
+  "Underground Arena", # Godai Delta skin
   "Hodojo",
   "Julesvale",
   "Merchant Port",
