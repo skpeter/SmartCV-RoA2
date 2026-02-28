@@ -53,13 +53,16 @@ def detect_stage_select_screen(payload: dict, img, scale_x: float, scale_y: floa
 
 
 def detect_character_select_screen(payload: dict, img, scale_x: float, scale_y: float):
-    pixel = img.getpixel((int(875 * scale_x), int(23 * scale_y)))  # white tournament mode icon
-    pixel2 = img.getpixel((int(320 * scale_x), int(10 * scale_y)))  # back button area
+    pixel = img.getpixel((int(863 * scale_x), int(42 * scale_y)))  # white tournament mode icon (trophy)
+    pixel2 = img.getpixel((int(807 * scale_x), int(20 * scale_y)))  # white tournament mode icon (where the number 3 or 5 is displayed)
 
     # Define the target color and deviation
-    target_color = (252, 250, 255)  # (white tournament mode icon)
-    target_color2 = (60, 47, 101)  # back button area
-    deviation = 0.1
+    target_color = (234, 209, 255)  # (purplish white)
+    target_color2 = (250, 250, 255)  # (white)
+    deviation = 0.15
+
+    core.print_with_time('detect_character_select_screen pixel', pixel, core.is_within_deviation(pixel, target_color, deviation), debug_only=True)
+    core.print_with_time('detect_character_select_screen pixel2', pixel2, core.is_within_deviation(pixel2, target_color2, deviation), debug_only=True)
 
     if core.is_within_deviation(pixel, target_color, deviation) and core.is_within_deviation(pixel2, target_color2, deviation):
         payload['state'] = "character_select"
@@ -151,9 +154,8 @@ def detect_stock_count(payload: dict, img, scale_x: float, scale_y: float):
     pixel1 = img.getpixel((int(385 * scale_x), int(390 * scale_y)))  # (left stock count)
     pixel2 = img.getpixel((int(1469 * scale_x), int(390 * scale_y)))
     deviation = 0.1
-    if config.getboolean('settings', 'debug_mode', fallback=False):
-        print('detect_stock_count p1', core.is_within_deviation(pixel1, target_color, deviation))
-        print('detect_stock_count p2', core.is_within_deviation(pixel2, target_color, deviation))
+    core.print_with_time('detect_stock_count p1', core.is_within_deviation(pixel1, target_color, deviation), debug_only=True)
+    core.print_with_time('detect_stock_count p2', core.is_within_deviation(pixel2, target_color, deviation), debug_only=True)
     if core.is_within_deviation(pixel1, target_color, deviation) \
             and core.is_within_deviation(pixel2, target_color, deviation):
         # crop image vertically to only display stock count area. remove everything that is between X:500 and X:1425
