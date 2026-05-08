@@ -14,12 +14,15 @@ characters = [
   "Olympia",
   "Absa",
   "Galvan",
-  "La Reina"
+  "La Reina",
+  "Slade"
 ]
 
 stages = [
   "Aetherian Forest",
   "Metal Graveyard", # Aetherian Forest skin
+  "Metal Refinery",
+  "Armada Flagship", # Metal refinery skin
   "Godai Delta",
   "Underground Arena", # Godai Delta skin
   "Hodojo",
