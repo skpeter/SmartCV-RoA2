@@ -9,6 +9,8 @@ client_name = "smartcv-roa2"
 config = configparser.ConfigParser()
 config.read('config.ini')
 previous_states = [None]  # list of previous states to be used for state change detection
+char_ocr_attempts = 0
+CHAR_OCR_MAX_TRIES = 5
 
 payload = {
     "state": None,
@@ -31,6 +33,7 @@ payload = {
 
 
 def detect_stage_select_screen(payload: dict, img, scale_x: float, scale_y: float):
+    global char_ocr_attempts
     pixel = img.getpixel((int(75 * scale_x), int(540 * scale_y)))  # white stage width icon
 
     # Define the target colors and deviation
@@ -49,10 +52,12 @@ def detect_stage_select_screen(payload: dict, img, scale_x: float, scale_y: floa
                 player['damage'] = None
                 player['character'] = None
                 player['name'] = None
+            char_ocr_attempts = 0
         detect_characters_and_tags(payload, img, scale_x, scale_y)
 
 
 def detect_character_select_screen(payload: dict, img, scale_x: float, scale_y: float):
+    global char_ocr_attempts
     pixel = img.getpixel((int(863 * scale_x), int(42 * scale_y)))  # white tournament mode icon (trophy)
     pixel2 = img.getpixel((int(807 * scale_x), int(20 * scale_y)))  # white tournament mode icon (where the number 3 or 5 is displayed)
 
@@ -75,50 +80,40 @@ def detect_character_select_screen(payload: dict, img, scale_x: float, scale_y: 
                 player['damage'] = None
                 player['character'] = None
                 player['name'] = None
+            char_ocr_attempts = 0
 
 
 def detect_characters_and_tags(payload: dict, img, scale_x: float, scale_y: float):
-    if payload['players'][0]['character'] is not None:
+    global char_ocr_attempts
+    if payload['players'][0]['character'] and payload['players'][1]['character']:
+        return
+    if char_ocr_attempts >= CHAR_OCR_MAX_TRIES:
+        return
+    if payload['state'] != "stage_select":
         return
 
+    char_ocr_attempts += 1
     # set initial game data, both players have 3 stocks
     for player in payload['players']:
         player['stocks'] = 3
 
-    def read_characters_and_names(payload, img, scale_x, scale_y):
-        # signal to the main loop that character and tag detection is in progress
-        if payload['state'] != "stage_select":
-            return
-        payload['players'][0]['character'] = False
-        payload['players'][1]['character'] = False
-        # Initialize the reader
-        tags = core.read_text(img, (0, int(990 * scale_y), int(1920 * scale_x), int(25 * scale_y)))
-        characters = core.read_text(img, (0, int(1020 * scale_y), int(1920 * scale_x), int(20 * scale_y)))
-        # this will yield a number of 2 characters separated by spaces. they must be assigned for each player.
-        # it will also yield a number of 2 tags separated by spaces. an exception to this is if the player does not have a tag, in which case they will show up as Player 1, Player 2, Player 3 or Player 4.
-        # the regex will handle these exceptions.
-        if tags is not None:
-            if len(tags) == 2:
-                t1, t2 = tags[0], tags[1]
-            else:
-                return
-        else:
-            return
-        if characters is not None:
-            if len(characters) == 2:
-                c1, _ = findBestMatch(characters[0], roa2.characters)
-                c2, _ = findBestMatch(characters[1], roa2.characters)
-            else:
-                return
-        else:
-            return
-        payload['players'][0]['character'], payload['players'][1]['character'], payload['players'][0]['name'], payload['players'][1]['name'] = c1, c2, t1, t2
-        core.print_with_time("Player 1 character:", c1)
-        core.print_with_time("Player 2 character:", c2)
-        core.print_with_time("Player 1 tag:", t1)
-        core.print_with_time("Player 2 tag:", t2)
-
-    read_characters_and_names(payload, img, scale_x, scale_y)
+    tags = core.read_text(img, (0, int(990 * scale_y), int(1920 * scale_x), int(25 * scale_y)))
+    characters = core.read_text(img, (0, int(1020 * scale_y), int(1920 * scale_x), int(20 * scale_y)))
+    # this will yield a number of 2 characters separated by spaces. they must be assigned for each player.
+    # it will also yield a number of 2 tags separated by spaces. an exception to this is if the player does not have a tag, in which case they will show up as Player 1, Player 2, Player 3 or Player 4.
+    # the regex will handle these exceptions.
+    if not tags or len(tags) != 2 or not characters or len(characters) != 2:
+        if char_ocr_attempts >= CHAR_OCR_MAX_TRIES:
+            core.print_with_time(
+                f"Character OCR failed after {CHAR_OCR_MAX_TRIES} tries")
+        return
+    c1, _ = findBestMatch(characters[0], roa2.characters)
+    c2, _ = findBestMatch(characters[1], roa2.characters)
+    payload['players'][0]['character'], payload['players'][1]['character'], payload['players'][0]['name'], payload['players'][1]['name'] = c1, c2, tags[0], tags[1]
+    core.print_with_time("Player 1 character:", c1)
+    core.print_with_time("Player 2 character:", c2)
+    core.print_with_time("Player 1 tag:", tags[0])
+    core.print_with_time("Player 2 tag:", tags[1])
 
 
 def detect_versus_screen(payload: dict, img, scale_x: float, scale_y: float):
