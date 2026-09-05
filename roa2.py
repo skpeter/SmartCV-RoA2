@@ -15,7 +15,8 @@ characters = [
   "Absa",
   "Galvan",
   "La Reina",
-  "Slade"
+  "Slade",
+  "Gouie"
 ]
 
 stages = [
