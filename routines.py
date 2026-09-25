@@ -1,8 +1,6 @@
 import configparser
-import numpy as np
 import time
 import roa2
-import re
 import core.core as core
 from core.matching import findBestMatch
 client_name = "smartcv-roa2"
@@ -173,65 +171,65 @@ def detect_game_end(payload: dict, img, scale_x: float, scale_y: float):
     if core.get_color_match_in_region(img, (0, int(5 * scale_y), int(1920 * scale_x), int(10 + 1 * scale_y)), target_color, deviation) >= 0.9 \
             and core.get_color_match_in_region(img, (0, int(1075 * scale_y), int(1920 * scale_x), int(10 + 1 * scale_y)), target_color, deviation) >= 0.9:
         core.print_with_time("Game end detected")
-        region = (int(540 * scale_x), int(825 * scale_y), int(731 * scale_x), int(175 * scale_y))
-        if (process_game_end_data(payload, img, scale_y, region)):
+        if process_game_end_data(payload, img, scale_x, scale_y):
             payload['state'] = "game_end"
             time.sleep(core.refresh_rate * 2)
             if payload['state'] != previous_states[-1]:
                 previous_states.append(payload['state'])
 
 
-def process_game_end_data(payload: dict, img, scale_y: int, region: tuple[int, int, int, int]):
+# Bottom HUD at 1920x1080: P1 stocks, P1 damage, P2 stocks, P2 damage.
+_GAME_END_HUD = (
+    (650, 825, 70, 95),
+    (790, 825, 125, 95),
+    (1000, 825, 70, 95),
+    (1140, 825, 135, 95),
+)
+
+
+def _ocr_hud_int(img, region: tuple[int, int, int, int], scale_x: float, scale_y: float):
     x, y, w, h = region
-    img = np.array(img)
-    img = img[int(y): int(y+h), int(x): int(x+w)]
-    img = core.stitch_text_regions(img, int(56 * scale_y), (255, 255, 255), margin=10, deviation=0.2)
-    if not len(img) or not img.any():
+    box = (int(x * scale_x), int(y * scale_y), int(w * scale_x), int(h * scale_y))
+    read_data = core.read_text(
+        img, box, colored=True, contrast=0, allowlist="DO0I12345678A9x%"
+    )
+    if not read_data:
+        return None
+    text = "".join(read_data).replace("O", "0").replace("D", "0").replace("I", "1").replace("A", "9")
+    digits = "".join(c for c in text if c.isdigit())
+    if not digits:
+        return None
+    return int(digits)
+
+
+def process_game_end_data(payload: dict, img, scale_x: float, scale_y: float):
+    parsed = [_ocr_hud_int(img, region, scale_x, scale_y) for region in _GAME_END_HUD]
+    if any(value is None for value in parsed):
         core.print_with_time("Could not read game end data. Trying again...")
         return False
-    read_data = core.read_text(img, colored=False, contrast=2, allowlist="DO0I12345678A9x%")
 
-    # what this text will extract are for excerpts of numbers. the first is the number of stocks for player 1, the second is the damage received by player 1, the third is the number of stocks for player 2, and the fourth is the damage received by player 2.
-    if read_data:
-        # this is to separate the stock count from the damage count as easyocr usually reads it as one big string
-        # example: '214%084%'
-        read_data = ' '.join(read_data)
-        read_data = read_data.replace('O', '0').replace('D', '0').replace('I', '1').replace('A', '9')
-        read_data = re.split(r"[ x%]", read_data)
-        read_data = [data for data in read_data if data]
-        result = []
-        for i, data in enumerate(read_data):
-            if not data.isdigit():
-                del read_data[i]
-            if len(result) >= 4:
-                break
-            result.extend([data[0], data[1:]]) if len(data) > 1 and len(read_data[i-1]) > 1 else result.append(data)
+    stocks1, damage1, stocks2, damage2 = parsed
 
-        if len(result) == 4:
-            stocks1, damage1, stocks2, damage2 = int(result[0]), int(result[1]), int(result[2]), int(result[3])
+    if stocks1 == 0: payload['players'][0]['stocks'] = stocks1
+    if stocks2 == 0: payload['players'][1]['stocks'] = stocks2
+    payload['players'][0]['damage'] = damage1
+    payload['players'][1]['damage'] = damage2
 
-            if stocks1 == 0: payload['players'][0]['stocks'] = stocks1
-            if stocks2 == 0: payload['players'][1]['stocks'] = stocks2
-            payload['players'][0]['damage'] = damage1
-            payload['players'][1]['damage'] = damage2
+    core.print_with_time(f"{payload['players'][0]['name']}'s end state: {stocks1} stocks at {damage1}%")
+    core.print_with_time(f"{payload['players'][1]['name']}'s end state: {stocks2} stocks at {damage2}%")
 
-            core.print_with_time(f"{payload['players'][0]['name']}'s end state: {stocks1} stocks at {damage1}%")
-            core.print_with_time(f"{payload['players'][1]['name']}'s end state: {stocks2} stocks at {damage2}%")
-
-            # print out the winner of the match based on two conditions: if one player has 0 stcks the other player wins. if both players have the same amount of stocks, the player with the least amount of damage wins.
-            if stocks1 == 0 or stocks1 < stocks2:
-                core.print_with_time(f"{payload['players'][1]['name']} wins!")
-            elif stocks2 == 0 or stocks2 < stocks1:
-                core.print_with_time(f"{payload['players'][0]['name']} wins!")
-            elif stocks1 == stocks2:
-                # timeout
-                if damage1 < damage2:
-                    core.print_with_time(f"{payload['players'][0]['name']} wins!")
-                elif damage1 > damage2:
-                    core.print_with_time(f"{payload['players'][1]['name']} wins!")
-            return True
-    core.print_with_time("Could not read game end data. Trying again...")
-    return False
+    # print out the winner of the match based on two conditions: if one player has 0 stcks the other player wins. if both players have the same amount of stocks, the player with the least amount of damage wins.
+    if stocks1 == 0 or stocks1 < stocks2:
+        core.print_with_time(f"{payload['players'][1]['name']} wins!")
+    elif stocks2 == 0 or stocks2 < stocks1:
+        core.print_with_time(f"{payload['players'][0]['name']} wins!")
+    elif stocks1 == stocks2:
+        # timeout
+        if damage1 < damage2:
+            core.print_with_time(f"{payload['players'][0]['name']} wins!")
+        elif damage1 > damage2:
+            core.print_with_time(f"{payload['players'][1]['name']} wins!")
+    return True
 
 
 states_to_functions = {
